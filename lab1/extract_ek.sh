@@ -1,0 +1,52 @@
+#!/bin/bash
+PCAP="${1:?Usage: $0 <pcap_file>}"
+
+tshark -r "$PCAP" -T ek \
+  -e frame.number \
+  -e frame.time_epoch \
+  -e frame.time \
+  -e frame.len \
+  -e frame.time_delta \
+  -e frame.protocols \
+  -e ip.src \
+  -e ip.dst \
+  -e ip.ttl \
+  -e ip.id \
+  -e ip.len \
+  -e ip.dsfield.dscp \
+  -e ip.dsfield.ecn \
+  -e ip.flags.df \
+  -e ip.flags.mf \
+  -e ip.frag_offset \
+  -e ip.proto \
+  -e tcp.srcport \
+  -e tcp.dstport \
+  -e tcp.stream \
+  -e tcp.flags \
+  -e tcp.flags.str \
+  -e tcp.flags.cwr \
+  -e tcp.flags.ece \
+  -e tcp.seq_raw \
+  -e tcp.ack_raw \
+  -e tcp.window_size_value \
+  -e tcp.window_size \
+  -e tcp.len \
+  -e tcp.hdr_len \
+  -e tcp.urgent_pointer \
+  -e tcp.options.mss_val \
+  -e tcp.options.wscale.shift \
+  -e tcp.options.sack_perm \
+  -e tcp.options.timestamp.tsval \
+  -e tcp.options.timestamp.tsecr \
+  -e tcp.options \
+  -e tcp.analysis.retransmission \
+  -e tcp.analysis.duplicate_ack \
+  -e tcp.analysis.zero_window \
+  -e tcp.analysis.window_update \
+  -e tcp.analysis.fast_retransmission \
+  -e tcp.analysis.spurious_retransmission \
+  -e tcp.analysis.out_of_order \
+  -e tcp.analysis.initial_rtt \
+  -e tcp.analysis.ack_rtt \
+  -e tcp.analysis.bytes_in_flight \
+  2>/dev/null
