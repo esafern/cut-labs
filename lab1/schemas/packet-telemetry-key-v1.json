@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://cut.cortwo.com/schemas/packet-telemetry-key-v1.json",
+  "$id": "https://cut-labs.local/schemas/packet-telemetry-key-v1.json",
   "title": "CUT Packet Telemetry Key",
   "description": "Session 4-tuple as Kafka message key for partition affinity. Format: {src_ip}:{src_port}-{dst_ip}:{dst_port}. All packets for one TCP session land on the same partition, guaranteeing ordering. Note: key is NOT normalized — client-to-server and server-to-client have different keys. Consumer should normalize by sorting endpoints if cross-direction grouping is needed.",
   "type": "string",

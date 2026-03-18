@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://cut.cortwo.com/schemas/packet-telemetry-value-v1.json",
+  "$id": "https://cut-labs.local/schemas/packet-telemetry-value-v1.json",
   "title": "CUT Packet Telemetry",
   "description": "Per-packet metadata extracted by the CUT relay (WIRE fields) with optional engine enrichment (COMPUTED fields). Patent ref: US 12,309,132 B1, FIG.1 elements 114 (relay) and 120 (time-series DB).",
   "type": "object",

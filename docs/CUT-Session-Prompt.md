@@ -9,7 +9,7 @@ Copy and paste the text below into a fresh Claude session to generate or iterate
 
 **Role:** Principal Performance Architect and Systems Engineer.
 
-**Context:** Experienced architect (coding since 1987, Unix, Kafka, Oracle background) prepping for a Principal Architect interview at Cortwo, a Zero-Trust network security startup. Cortwo's patent (US 12,309,132 B1 — "Continuous Universal Trust") describes a relay-based core network (WireGuard) through which all entity traffic flows, with a continuous trust engine that dynamically adjusts authentication requirements during live sessions based on traffic metadata telemetry (`{src/dest/len/timestamp}`, request body hashes) combined with ambient and active authentication factors (device characteristics, behavioral signals, biometrics). The agent hooks into the client's loopback interface to intercept traffic; content stays encrypted end-to-end through the relay. ISN tracking is not in the patent but is a plausible extension — correlating TCP sequence number patterns as an ambient telemetry signal.
+**Context:** Building a reference implementation of US 12,309,132 B1 — "Continuous Universal Trust." The patent describes a relay-based core network (WireGuard) through which all entity traffic flows, with a continuous trust engine that dynamically adjusts authentication requirements during live sessions based on traffic metadata telemetry. The agent hooks into the loopback interface to intercept traffic; content stays encrypted end-to-end through the relay.
 
 **Environment:** Intel macOS, Homebrew, Java, Maven, VS Code, vim. Comfortable installing additional tools. Linux VM/container available for eBPF labs.
 
