@@ -1,6 +1,6 @@
 # CUT Labs — Continuous Universal Trust Architecture
 
-Reference implementation of the [Cortwo/Noetic CUT patent](https://patents.google.com/patent/US12309132B1/en) (US 12,309,132 B1) telemetry pipeline.
+Reference implementation of the [CUT patent](https://patents.google.com/patent/US12309132B1/en) (US 12,309,132 B1) telemetry pipeline.
 
 Built on Intel macOS Sequoia 15.7.4 (BSD networking stack).
 
@@ -96,5 +96,5 @@ docs/           Lab guide and session prompt
 ## Patent Reference
 
 US 12,309,132 B1 — "Continuous Universal Trust Architecture and Method"
-Inventor: Nir Gaist. Assigned to Cortwo Corp (now Noetic).
+Filed 2024-07-12. Granted 2025-05-20.
 Filed 2024-07-12. Granted 2025-05-20.
