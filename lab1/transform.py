@@ -3,6 +3,13 @@ import sys,json
 # WIRE fields: actual bits on the packet. Always present.
 # COMPUTED fields: derived by tshark. Optional — engine derives if absent.
 # See FIELD_REFERENCE.md for derivation formulas.
+#
+# Key: normalized session 4-tuple (endpoints sorted lexicographically).
+# Both directions of the same TCP session produce the same key.
+# Direction is in the value as "direction": "outbound" or "inbound".
+#
+# Delimiter: pipe (|) between key and value.
+# Tab breaks confluent CLI. Colon breaks keys containing IP:port.
 
 WIRE = ("src_ip src_port dst_ip dst_port "
         "timestamp_epoch "
@@ -24,9 +31,19 @@ for l in sys.stdin:
     v = l.strip().split(",")
     if len(v) < 4 or not v[0]:
         continue
-    k = f"{v[0]}:{v[1]}-{v[2]}:{v[3]}"
+
+    a = f"{v[0]}:{v[1]}"
+    b = f"{v[2]}:{v[3]}"
+    if a > b:
+        a, b = b, a
+        direction = "inbound"
+    else:
+        direction = "outbound"
+    k = f"{a}-{b}"
+
     p = {}
     for i, f in enumerate(ALL):
         if i < len(v) and v[i]:
             p[f] = int(v[i]) if f in I else v[i]
-    print(f"{k}\t{json.dumps(p)}")
+    p["direction"] = direction
+    print(f"{k}|{json.dumps(p)}")
