@@ -52,3 +52,6 @@ lab2/packet-telemetry-*.json
 lab2/register_schema.sh
 lab2/view-subjects.sh
 lab2/x
+
+# Secrets
+lab1/load_schema.sh
