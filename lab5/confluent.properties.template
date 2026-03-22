@@ -1,0 +1,9 @@
+bootstrap.servers=pkc-921jm.us-east-2.aws.confluent.cloud:9092
+security.protocol=SASL_SSL
+sasl.mechanisms=PLAIN
+sasl.username=REPLACE_API_KEY
+sasl.password=REPLACE_API_SECRET
+ssl.ca.location=/etc/ssl/cert.pem
+reconnect.backoff.ms=500
+reconnect.backoff.max.ms=10000
+message.timeout.ms=30000
