@@ -50,6 +50,8 @@ C reimplementation: fixed byte offsets, one struct cast per packet.
 | ts_ecr | tcp.options.timestamp.tsecr | TCP opts | parse option kind=8, bytes 6-9 |
 | tcp_options_raw | tcp.options | TCP+20 | `memcpy(tcp+20, tcp_hdr_len-20)` |
 | timestamp_epoch | frame.time_epoch | capture clock | `gettimeofday()` at capture |
+| direction | (derived) | (derived) | Lexicographic compare of endpoints: if src > dst, swap and set "inbound", else "outbound" |
+
 
 ## COMPUTED Fields — Optional, Engine Derives from WIRE
 
@@ -120,12 +122,17 @@ packets
 
 ## Kafka Message Format
 
-Key: `{src_ip}:{src_port}-{dst_ip}:{dst_port}`
-Value: JSON with WIRE fields always present, COMPUTED fields when available
+Key: normalized session 4-tuple (endpoints sorted lexicographically)
+  Example: `127.0.0.1:56896-127.0.0.1:9999` (lower sorts first)
+  Both directions of one session produce the same key
+Delimiter: `|` (pipe)
+Value: JSON with WIRE fields always present, COMPUTED fields when available,
+  `direction` field ("outbound" or "inbound") always present
 Topic: `packet-telemetry`
 Compression: snappy
-Partitioning: by key (session affinity)
+Partitioning: by key (session affinity, both directions same partition)
 
 Consumer behavior: check for COMPUTED field presence. If absent, derive from WIRE.
 This means the same consumer code works with both tshark-enriched messages (lab)
 and WIRE-only messages (production C parser).
+

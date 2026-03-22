@@ -55,3 +55,6 @@ lab2/x
 
 # Secrets
 lab1/load_schema.sh
+lab5/dtrace.out
+lab5/dtrace_enhanced.out
+lab5/ambient_snapshot_*.json

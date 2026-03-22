@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://cut-labs.local/schemas/ambient-telemetry-key-v1.json",
+  "title": "CUT Ambient Telemetry Key",
+  "description": "Process identity key for ambient factor telemetry. Format: {pid}-{process_name}.",
+  "type": "string",
+  "pattern": "^[0-9]+-[A-Za-z0-9_()]+$",
+  "examples": [
+    "81241-nc",
+    "98030-Google_Chrome_Helper",
+    "853-Windscribe"
+  ]
+}
