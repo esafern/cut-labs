@@ -58,3 +58,6 @@ lab1/load_schema.sh
 lab5/dtrace.out
 lab5/dtrace_enhanced.out
 lab5/ambient_snapshot_*.json
+lab6/*.out
+lab6/*.tsv
+lab6/*.pcap

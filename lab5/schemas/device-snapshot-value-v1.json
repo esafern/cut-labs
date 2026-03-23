@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://cut-labs.local/schemas/device-snapshot-value-v1.json",
+  "title": "CUT Device Snapshot",
+  "description": "Point-in-time device fingerprint. Patent ref: US 12,309,132 B1, FIG.1 element 104 — ambient factors including device characteristics, OS, installed applications, running processes.",
+  "type": "object",
+  "required": ["timestamp", "hostname"],
+  "properties": {
+    "timestamp":     { "type": "string", "description": "ISO 8601 capture time." },
+    "hostname":      { "type": "string", "description": "Device hostname." },
+    "os_version":    { "type": "string", "description": "macOS/Linux version." },
+    "os_build":      { "type": "string", "description": "OS build number." },
+    "kernel":        { "type": "string", "description": "Kernel version string." },
+    "arch":          { "type": "string", "description": "CPU architecture." },
+    "uptime":        { "type": "string", "description": "System uptime string." },
+    "running_processes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "pid":     { "type": "string" },
+          "ppid":    { "type": "string" },
+          "user":    { "type": "string" },
+          "command": { "type": "string" }
+        }
+      }
+    },
+    "network_interfaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "interface": { "type": "string" },
+          "addresses": { "type": "string" }
+        }
+      }
+    },
+    "open_connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "local":  { "type": "string" },
+          "remote": { "type": "string" },
+          "state":  { "type": "string" }
+        }
+      }
+    },
+    "listening_ports": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "command": { "type": "string" },
+          "pid":     { "type": "string" },
+          "name":    { "type": "string" }
+        }
+      }
+    },
+    "installed_apps": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}
