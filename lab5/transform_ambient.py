@@ -5,6 +5,9 @@ Usage:
 
 Output format: key|json (pipe-delimited)
 Key: {pid}-{process_name} (spaces replaced with underscores)
+
+Handles events: CONN, SEND, RECV, SOCK, CLOS
+Skips DTrace header lines and SIP warnings.
 """
 
 import sys, json, re
@@ -32,11 +35,13 @@ for line in sys.stdin:
         "event": event,
         "fd": int(fd),
     }
-    if "bytes=" in details:
-        rec["bytes"] = int(details.split("bytes=")[1].split()[0])
-    if "domain=" in details:
-        rec["domain"] = int(details.split("domain=")[1].split()[0])
-    if "type=" in details:
-        rec["sock_type"] = int(details.split("type=")[1].split()[0])
+    for kv in re.findall(r"(\w+)=(\d+)", details):
+        field, val = kv
+        if field == "bytes":
+            rec["bytes"] = int(val)
+        elif field == "domain":
+            rec["domain"] = int(val)
+        elif field == "type":
+            rec["sock_type"] = int(val)
     key = pid + "-" + proc.strip().replace(" ", "_")
     print(key + "|" + json.dumps(rec))

@@ -1,148 +1,101 @@
 #!/bin/bash
+# CUT Lab 4 — NAT Simulation
+# Patent ref: US 12,309,132 B1 — pkey as durable identity anchor
 #
-# CUT Lab 4 — NAT Simulation via WireGuard Port Change
-#
-# Demonstrates that the WireGuard pkey is the durable identity anchor,
-# not the 4-tuple. When the agent's UDP port changes (simulating NAT
-# rebind or mobile roaming), the tunnel re-establishes on the same pkey.
-#
-# Patent ref: US 12,309,132 B1 — the trust engine treats 4-tuple changes
-# as roam events and evaluates ambient factors to distinguish legitimate
-# roaming from session hijack.
+# Demonstrates that the WireGuard public key survives a 4-tuple change.
+# Simulates NAT/roaming by changing the agent's ListenPort and nudging
+# the daemon to recognize the new endpoint.
 #
 # Prerequisites:
 #   - WireGuard agent running on Mac (wg-agent.conf, port 51820)
-#   - WireGuard daemon running in Docker container (wg0.conf, port 51821)
-#   - Tunnel verified with: ping -c 1 10.0.0.2
+#   - WireGuard daemon running in Docker container (wg0, port 51821)
+#   - Tunnel functional (ping 10.0.0.2 works)
 #
-# Usage: ./nat_simulation.sh
+# What happens:
+#   1. Capture baseline: pkey + endpoint from both sides
+#   2. Tear down agent on port 51820
+#   3. Bring up agent on port 51830 (simulates NAT rebind / mobile roam)
+#   4. Nudge daemon to recognize new endpoint
+#   5. Verify tunnel re-establishes on same pkey
+#
+# Usage: sudo ./nat_simulation.sh
 
 set -e
 
-LAB_DIR="$(cd "$(dirname "$0")" && pwd)"
+LAB_DIR="$(dirname "$0")"
 AGENT_CONF="$LAB_DIR/wg-agent.conf"
-AGENT_51830_CONF="$LAB_DIR/wg-agent-51830.conf"
-DAEMON_PUBKEY=$(cat "$LAB_DIR/daemon_public.key")
+AGENT_51830="$LAB_DIR/wg-agent-51830.conf"
 AGENT_PUBKEY=$(cat "$LAB_DIR/agent_public.key")
-AGENT_PRIVKEY=$(cat "$LAB_DIR/agent_private.key")
 
-echo "=============================================="
-echo "  CUT Lab 4 — NAT Simulation (Port Change)"
-echo "=============================================="
-echo ""
+echo "=== Phase 1: Baseline ===" >&2
+echo "" >&2
+echo "--- Mac (agent) ---" >&2
+sudo wg show | grep -E "(public key|listening port|endpoint|latest handshake)"
+echo "" >&2
+echo "--- Docker (daemon) ---" >&2
+docker exec wg-daemon wg show | grep -E "(public key|listening port|endpoint|latest handshake)"
 
-echo "=== Phase 1: Verify baseline tunnel ==="
-echo ""
-echo "Agent (Mac):"
-sudo wg show | grep -E "(public key|listening port|endpoint)" || {
-    echo "ERROR: Agent WireGuard not running. Start with:"
-    echo "  sudo wg-quick up $AGENT_CONF"
-    exit 1
-}
-echo ""
-echo "Daemon (Docker):"
-docker exec wg-daemon wg show | grep -E "(public key|listening port|endpoint)" || {
-    echo "ERROR: Daemon container not running."
-    exit 1
-}
-echo ""
+echo "" >&2
+echo "=== Phase 2: Verify connectivity ===" >&2
+ping -c 1 -W 2 10.0.0.2 > /dev/null 2>&1 && echo "Tunnel UP" || { echo "Tunnel DOWN — cannot proceed"; exit 1; }
 
-echo "Ping test (baseline):"
-ping -c 1 -W 2 10.0.0.2 > /dev/null 2>&1 && echo "  PASS — tunnel is up" || {
-    echo "  FAIL — tunnel not working"
-    exit 1
-}
+echo "" >&2
+echo "=== Phase 3: Create alternate config (port 51830) ===" >&2
+if [ ! -f "$AGENT_51830" ]; then
+    sed 's/ListenPort = 51820/ListenPort = 51830/' "$AGENT_CONF" > "$AGENT_51830"
+    echo "Created $AGENT_51830"
+else
+    echo "$AGENT_51830 already exists"
+fi
+
+echo "" >&2
+echo "=== Phase 4: Tear down agent (port 51820) ===" >&2
+sudo wg-quick down "$AGENT_CONF" 2>/dev/null || echo "Agent was not running on 51820"
+
+echo "" >&2
+echo "=== Phase 5: Bring up agent (port 51830) — simulates NAT rebind ===" >&2
+sudo wg-quick up "$AGENT_51830"
+
+echo "" >&2
+echo "=== Phase 6: Nudge daemon to recognize new endpoint ===" >&2
+echo "  WireGuard normally detects roaming automatically when it receives"
+echo "  a valid packet from a new source. In our Docker setup, the initial"
+echo "  handshake from the new port may not reach the daemon through the"
+echo "  port mapping. We nudge it explicitly:"
 echo ""
-
-echo "Recording baseline 4-tuple..."
-BASELINE_PORT=$(sudo wg show | grep "listening port" | awk '{print $3}')
-BASELINE_ENDPOINT=$(docker exec wg-daemon wg show | grep endpoint | awk '{print $2}')
-echo "  Agent listening port: $BASELINE_PORT"
-echo "  Daemon sees agent at: $BASELINE_ENDPOINT"
-echo ""
-
-read -p "Press Enter to simulate NAT (port change 51820 → 51830)..."
-echo ""
-
-echo "=== Phase 2: Create alternate config (port 51830) ==="
-cat > "$AGENT_51830_CONF" << EOF
-[Interface]
-PrivateKey = $AGENT_PRIVKEY
-ListenPort = 51830
-Address = 10.0.0.1/24
-
-[Peer]
-PublicKey = $DAEMON_PUBKEY
-AllowedIPs = 10.0.0.2/32
-Endpoint = 127.0.0.1:51821
-PersistentKeepalive = 25
-EOF
-echo "  Created $AGENT_51830_CONF"
-echo ""
-
-echo "=== Phase 3: Tear down agent on port 51820 ==="
-sudo wg-quick down "$AGENT_CONF" 2>/dev/null || true
-echo "  Agent stopped"
-echo ""
-
-echo "=== Phase 4: Bring up agent on port 51830 ==="
-sudo wg-quick up "$AGENT_51830_CONF"
-echo ""
-
-echo "=== Phase 5: Nudge daemon to new endpoint ==="
-echo "  (Simulates WireGuard roaming — daemon learns new source port)"
 docker exec wg-daemon wg set wg0 peer "$AGENT_PUBKEY" endpoint host.docker.internal:51830
-echo "  Daemon endpoint updated"
-echo ""
+echo "  Daemon endpoint updated to host.docker.internal:51830"
 
-echo "=== Phase 6: Verify tunnel survived ==="
-echo ""
-echo "Ping test (post-NAT):"
-ping -c 3 10.0.0.2 && echo "" || {
-    echo "  Tunnel did not survive — check container"
-    exit 1
-}
+echo "" >&2
+echo "=== Phase 7: Verify tunnel re-established ===" >&2
+sleep 2
+ping -c 3 10.0.0.2
 
-echo "=== Phase 7: Compare before and after ==="
-echo ""
-NEW_PORT=$(sudo wg show | grep "listening port" | awk '{print $3}')
-NEW_ENDPOINT=$(docker exec wg-daemon wg show | grep endpoint | awk '{print $2}')
+echo "" >&2
+echo "=== Phase 8: Compare ===" >&2
+echo "" >&2
+echo "--- Mac (agent) ---" >&2
+sudo wg show | grep -E "(public key|listening port|endpoint|latest handshake)"
+echo "" >&2
+echo "--- Docker (daemon) ---" >&2
+docker exec wg-daemon wg show | grep -E "(public key|listening port|endpoint|latest handshake)"
 
-echo "  BEFORE:"
-echo "    Agent port:     $BASELINE_PORT"
-echo "    Daemon saw:     $BASELINE_ENDPOINT"
-echo ""
-echo "  AFTER:"
-echo "    Agent port:     $NEW_PORT"
-echo "    Daemon sees:    $NEW_ENDPOINT"
-echo ""
+echo "" >&2
+echo "=== Result ===" >&2
+echo "  pkey:     UNCHANGED on both sides" >&2
+echo "  port:     51820 → 51830 (agent ListenPort changed)" >&2
+echo "  tunnel:   RE-ESTABLISHED on same pkey" >&2
+echo "" >&2
+echo "  Trust engine interpretation:" >&2
+echo "    → 4-tuple changed (physical layer event)" >&2
+echo "    → pkey unchanged (identity layer stable)" >&2
+echo "    → Evaluate ambient factors to confirm legitimate roam" >&2
+echo "    → If ambient unchanged: minor trust impact (roam event)" >&2
+echo "    → If ambient changed: step-up authentication or BLOCK" >&2
 
-echo "  IDENTITY (unchanged):"
-echo "    Agent pkey:     $AGENT_PUBKEY"
-echo "    Daemon pkey:    $DAEMON_PUBKEY"
-echo ""
-
-echo "=== Result ==="
-echo ""
-echo "  4-tuple CHANGED: port $BASELINE_PORT → $NEW_PORT"
-echo "  pkey UNCHANGED:  same public keys on both sides"
-echo "  Tunnel SURVIVED: ping successful after port change"
-echo ""
-echo "  Trust engine interpretation:"
-echo "    → Roam event detected (endpoint changed)"
-echo "    → Identity verified (pkey matches)"
-echo "    → Evaluate ambient factors for step-up decision"
-echo ""
-
-read -p "Press Enter to restore original config (port 51820)..."
-echo ""
-
-echo "=== Phase 8: Restore ==="
-sudo wg-quick down "$AGENT_51830_CONF" 2>/dev/null || true
-sudo wg-quick up "$AGENT_CONF"
-docker exec wg-daemon wg set wg0 peer "$AGENT_PUBKEY" endpoint host.docker.internal:51820
-echo ""
-echo "Restored to port 51820. Verifying..."
-ping -c 1 -W 2 10.0.0.2 > /dev/null 2>&1 && echo "  PASS — tunnel restored" || echo "  FAIL — check config"
-echo ""
-echo "Done."
+echo "" >&2
+echo "=== Cleanup ===" >&2
+echo "  To restore original port:" >&2
+echo "    sudo wg-quick down $AGENT_51830" >&2
+echo "    sudo wg-quick up $AGENT_CONF" >&2
+echo "    docker exec wg-daemon wg set wg0 peer $AGENT_PUBKEY endpoint host.docker.internal:51820" >&2
