@@ -2,7 +2,7 @@
 
 **Version:** 2.0
 **Updated:** 2026-03-18
-**Target:** CUT patent reference implementation
+**Target:** CUT patent exploration
 **Platform:** Intel macOS Sequoia 15.7.4 (BSD networking stack, x86_64)
 **Patent Reference:** US 12,309,132 B1 — "Continuous Universal Trust"
 **Repo:** https://github.com/esafern/cut-labs
@@ -12,7 +12,7 @@
 ## Prerequisites & Setup
 
 ```bash
-brew install mitmproxy wireshark wireguard-tools wireguard-go iperf3 nmap kcat
+brew install mitmproxy wireshark wireguard-tools wireguard-go iperf3 nmap
 brew install gh && gh auth login
 ```
 
@@ -78,9 +78,9 @@ syscall provider works under SIP. fbt provider does not. No reboot needed.
 
 4-tuple is not stable across NAT. WireGuard pkey is the durable identity anchor. Session key normalized (endpoints sorted lexicographically). Direction field distinguishes outbound/inbound.
 
-### Confluent Cloud / kcat
+### Confluent Cloud 
 
-Never pass kcat `-b` with `-F`. Add `ssl.ca.location=/etc/ssl/cert.pem`. kcat file argument races SSL handshake — use `cat file | kcat -P` or confluent CLI for file mode. Use `|` as delimiter everywhere (not tab, not colon). Service accounts need consumer group READ ACL for consume.
+Use `|` as delimiter everywhere (not tab, not colon). Service accounts need consumer group READ ACL for consume.
 
 ### IPv6 vs IPv4 on macOS
 
@@ -136,7 +136,7 @@ Verify: `confluent kafka topic consume packet-telemetry --from-beginning --clust
 ### 1.5 — Schema Registry
 
 ```bash
-cd ~/cut-labs/lab1 && ./register_schema.sh https://psrc-lz3xz.us-central1.gcp.confluent.cloud SR_KEY SR_SECRET
+cd ~/cut-labs/lab1 && ./register_schema.sh <sr_url> <sr_key> <sr_secret>
 ```
 
 ### 1.6 — Architecture Notes

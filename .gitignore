@@ -53,6 +53,9 @@ lab2/register_schema.sh
 lab2/view-subjects.sh
 lab2/x
 
+# Backup
+cut-labs-repo.tar.gz
+
 # Secrets
 lab1/load_schema.sh
 lab5/dtrace.out
@@ -61,3 +64,4 @@ lab5/ambient_snapshot_*.json
 lab6/*.out
 lab6/*.tsv
 lab6/*.pcap
+._*

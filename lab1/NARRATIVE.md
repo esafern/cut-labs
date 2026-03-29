@@ -1,7 +1,18 @@
-# Lab 1: TCP Handshake, ISN Tracking & Loopback Telemetry
+# Lab 1 — Notes
 
-## What We're Building
+Captured a basic TCP handshake on loopback to build the telemetry extraction pipeline.
 
+10 packets total: 3-way handshake, data, FIN teardown. Used tcpdump -S (absolute sequence numbers) — relative mode hides the ISN which is the whole point.
+
+Key thing learned: tshark's `-e` field extraction gives you WIRE fields (what's on the packet) and COMPUTED fields (what tshark calculates from state, like tcp.analysis.bytes_in_flight). In prod the relay should only pull raw header fields — computed stuff like bytes_in_flight belongs downstream in the engine, not at the capture point.  For now use it to save time.
+
+BSD vs Linux gotcha: macOS tshark reports tcp.hdr_len in bytes (32), Linux in 32-bit words (8). Broke transform.py until I fixed it.
+
+Pipeline: tshark → TSV → transform.py (CSV→keyed JSON, normalizes 4-tuple for partition affinity) → produce_sr.py → Confluent Cloud.
+
+Two modes: file (for pcap replay) and pipe (for live capture).
+
+Production: replace tshark+python with C parser at fixed byte offsets → librdkafka. Same schema, same consumers. See FIELD_REFERENCE.md for the offsets.
 The patent's agent (FIG.1 element 104) hooks into the client's loopback interface
 to intercept all local application traffic. It extracts metadata —
 `{src/dest/len/timestamp}` — and feeds it to the relay for the trust engine to
@@ -194,18 +205,15 @@ what p0f uses for passive OS fingerprinting. Captured in `tcp_options_raw`.
 
 Three composable scripts:
 
-| Script | Job | Input | Output |
-|--------|-----|-------|--------|
+| Script                 | Job | Input | Output |
+|----------------------------------------|-----|-------|--------|
 | `extract_telemetry.sh` | tshark + transform → file | pcap path | NDJSON file |
-| `transform.py` | CSV → keyed JSON | stdin (tshark CSV) | stdout (key\|json) |
-| `produce.sh` | file or stdin → Kafka | file arg or stdin | Kafka topic |
+| `transform.py`         | CSV → keyed JSON | stdin (tshark CSV) | stdout (key\|json) |
+| `produce_sr.py`        | file or stdin → Kafka | file arg or stdin | Kafka topic |
 
-**File mode** (any pcap size): `extract → produce`. Reliable because kcat reads
-from file via `cat file | kcat -P` (pipe keeps stdin open during SSL handshake).
+**File mode** (any pcap size): `extract → produce`. 
 
-**Pipe mode** (live capture): `tshark -l | python3 -u transform.py | produce.sh`.
-Works because tshark stays alive, python stays alive, kcat's SSL handshake
-completes while waiting for first byte. No race condition.
+**Pipe mode** (live capture): `tshark -l | python3 -u transform.py | produce_sr.py`.
 
 **Session key normalization:** `transform.py` sorts endpoints lexicographically.
 Both directions of one TCP session produce the same key → same Kafka partition →

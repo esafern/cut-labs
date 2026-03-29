@@ -1,12 +1,13 @@
 # CUT Labs — Continuous Universal Trust Architecture
 
-Reference implementation of the [CUT patent](https://patents.google.com/patent/US12309132B1/en) (US 12,309,132 B1) telemetry pipeline.
+Hands-on exploration of the CUT patent telemetry pipeline
 
 Built on Intel macOS Sequoia 15.7.4 (BSD networking stack).
 
 ## What This Is
 
-A working implementation of the CUT patent's relay telemetry pipeline:
+A working lab environment for understanding the CUT patent's relay architecture
+
 packet metadata extraction → structured JSON → Kafka → trust engine.
 
 The project explores how a Zero-Trust network architecture can extract,
@@ -16,20 +17,20 @@ without inspecting payload content.
 Each lab implements a specific patent component:
 
 | Lab | Patent Component | What It Does |
-|-----|-----------------|--------------|
-| 1 | Relay telemetry (FIG.1 #114, #120) | TCP capture, ISN tracking, tshark → Kafka pipeline |
-| 2 | Two-session relay split (FIG.1 #114) | mTLS proxy showing independent ISN spaces |
-| 3 | Trust signal detection (FIG.1 #112) | TCP zero window as DPI choke indicator |
-| 4 | WireGuard relay (FIG.1 #114) | Encrypted tunnel via Docker + NAT simulation |
-| 5 | Agent ambient factors (FIG.1 #104) | DTrace kernel telemetry + device snapshot |
-| 6 | Full-stack correlation | All layers captured simultaneously |
+|-----|------------------|--------------|
+| 1   | Relay telemetry (FIG.1 #114, #120) | TCP capture, ISN tracking, tshark → Kafka pipeline |
+| 2   | Two-session relay split (FIG.1 #114) | mTLS proxy showing independent ISN spaces |
+| 3   | Trust signal detection (FIG.1 #112) | TCP zero window as DPI choke indicator |
+| 4   | WireGuard relay (FIG.1 #114) | Encrypted tunnel via Docker + NAT simulation |
+| 5   | Agent ambient factors (FIG.1 #104) | DTrace kernel telemetry + device snapshot |
+| 6   | Full-stack correlation | All layers captured simultaneously |
 
 ## Quick Start
 
 ### Prerequisites
 
 ```bash
-brew install mitmproxy wireshark wireguard-tools wireguard-go iperf3 nmap kcat
+brew install mitmproxy wireshark wireguard-tools wireguard-go iperf3 nmap
 pip3 install confluent-kafka --break-system-packages
 ```
 
@@ -65,7 +66,7 @@ Ctrl-C the tcpdump. Extract and produce to Kafka:
 
 ```bash
 cd lab1 && ./extract_telemetry.sh handshake.pcap telemetry.tsv
-python3 ../produce.py confluent.properties packet-telemetry < telemetry.tsv
+python3 ../produce_sr.py confluent.properties packet-telemetry <sr_url> <sr_key> <sr_secret> < telemetry.tsv
 ```
 
 ## Architecture
@@ -78,7 +79,7 @@ tcpdump/tshark          Kafka                   Trust Engine
   28 fields            topic                    9 derived fields
   stateless        keyed by session             stateful analysis
   line-rate        partition affinity            trust scoring
-                         │
+                           │
   DTrace/eBPF ──→ ambient-telemetry ──────────→ Device fingerprint
   syscall events       topic                    Process inventory
   kernel-level     keyed by pid-process         Behavioral baseline
@@ -111,9 +112,8 @@ mid-session — tunnel re-establishes on the same pkey.
 **Pipe delimiter:** `|` everywhere. Tab caused BSD sed failures and confluent CLI
 parsing issues. Colon breaks keys containing IP:port.
 
-**Python producer over kcat/CLI:** `produce.py` uses confluent-kafka (librdkafka)
-with batching, compression, and SSL retry. kcat's SSL first-connect failure is
-persistent with Confluent Cloud. The confluent CLI lacks batching.
+**Python System Registry producer:** `produce_sr.py` uses confluent-kafka (librdkafka)
+with batching, compression, and SSL retry with Schema Registry serialization for both key and value.
 
 **Docker for WireGuard daemon:** Both WireGuard peers on the same Mac fails — the
 kernel short-circuits LOCAL destinations. The daemon runs inside a Docker container
@@ -122,7 +122,9 @@ with a separate network stack.
 ## Repo Structure
 
 ```
-produce.py              Universal Kafka producer (confluent-kafka, batched, compressed)
+produce_sr.py           Kafka producer with Schema Registry serialization for both key and value.
+load_grafana.py         Consume packet-telemetry and ambient-telemetry from Kafka, build session_summary in PostgreSQL for Grafana
+cut-dashboard.json      First pass at a Grafana Dashboard analyzing the traffic data
 lab1/                   TCP handshake + telemetry pipeline
   NARRATIVE.md            Detailed walkthrough and explanation
   transform.py            CSV → normalized keyed JSON (pipe-delimited)
@@ -159,7 +161,6 @@ lab6/                   Full-stack correlation
   NARRATIVE.md            Chain all labs, capture at every layer
 docs/
   CUT-Crash-Course-Lab-Guide.md   Step-by-step CLI guide (all labs)
-  CUT-Session-Prompt.md           Claude session prompt for regenerating the guide
   PIPELINE.md                     Pipeline reference architecture
 ```
 
