@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://cut-labs.local/schemas/ambient-telemetry-value-v1.json",
+  "title": "CUT Ambient Telemetry",
+  "description": "Per-event ambient factor data collected by the CUT agent via DTrace/eBPF. Patent ref: US 12,309,132 B1, FIG.1 element 104 (agent).",
+  "type": "object",
+  "required": ["timestamp", "pid", "process", "event", "fd"],
+  "properties": {
+    "timestamp":  { "type": "string",  "description": "Capture timestamp from DTrace/eBPF." },
+    "pid":        { "type": "integer", "description": "Process ID that triggered the syscall." },
+    "process":    { "type": "string",  "description": "Process name (execname from DTrace)." },
+    "event":      { "type": "string",  "enum": ["CONN", "SEND", "RECV", "SOCK", "CLOS"], "description": "Syscall category: CONN=connect, SEND=write, RECV=read, SOCK=socket, CLOS=close." },
+    "fd":         { "type": "integer", "description": "File descriptor number." },
+    "bytes":      { "type": "integer", "description": "Byte count for SEND/RECV events." },
+    "domain":     { "type": "integer", "description": "Socket domain for SOCK events (2=AF_INET, 10=AF_INET6, 1=AF_UNIX)." },
+    "sock_type":  { "type": "integer", "description": "Socket type for SOCK events (1=STREAM, 2=DGRAM)." }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,152 @@
+{
+  "dashboard": {
+    "title": "CUT Trust Engine — Telemetry Dashboard",
+    "tags": ["cut", "trust-engine", "zero-trust"],
+    "timezone": "browser",
+    "refresh": "",
+    "time": { "from": "2026-03-10T00:00:00Z", "to": "2026-03-25T00:00:00Z" },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Session Inventory",
+        "type": "table",
+        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+        "datasource": { "type": "grafana-postgresql-datasource" },
+        "targets": [{
+          "rawSql": "SELECT session_key, packet_count, total_bytes, min_window, max_window, mss, network_path, os_outbound, os_inbound, has_zero_window FROM session_summary ORDER BY packet_count DESC",
+          "format": "table",
+          "refId": "A"
+        }]
+      },
+      {
+        "id": 2,
+        "title": "Network Path Distribution",
+        "type": "piechart",
+        "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+        "datasource": { "type": "grafana-postgresql-datasource" },
+        "targets": [{
+          "rawSql": "SELECT network_path AS metric, COUNT(*)::float AS value FROM session_summary GROUP BY network_path",
+          "format": "table",
+          "refId": "A"
+        }],
+        "options": { "pieType": "pie", "reduceOptions": { "values": true, "calcs": [], "fields": "/.*value.*/" }, "legend": { "displayMode": "list", "placement": "right" } }
+      },
+      {
+        "id": 3,
+        "title": "OS Fingerprint (Outbound)",
+        "type": "piechart",
+        "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+        "datasource": { "type": "grafana-postgresql-datasource" },
+        "targets": [{
+          "rawSql": "SELECT os_outbound AS metric, COUNT(*)::float AS value FROM session_summary GROUP BY os_outbound",
+          "format": "table",
+          "refId": "A"
+        }],
+        "options": { "pieType": "pie", "reduceOptions": { "values": true, "calcs": [], "fields": "/.*value.*/" }, "legend": { "displayMode": "list", "placement": "right" } }
+      },
+      {
+        "id": 4,
+        "title": "OS Fingerprint (Inbound)",
+        "type": "piechart",
+        "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+        "datasource": { "type": "grafana-postgresql-datasource" },
+        "targets": [{
+          "rawSql": "SELECT os_inbound AS metric, COUNT(*)::float AS value FROM session_summary GROUP BY os_inbound",
+          "format": "table",
+          "refId": "A"
+        }],
+        "options": { "pieType": "pie", "reduceOptions": { "values": true, "calcs": [], "fields": "/.*value.*/" }, "legend": { "displayMode": "list", "placement": "right" } }
+      },
+      {
+        "id": 5,
+        "title": "TCP Window — Lab 3 Zero Window Session (Server Side)",
+        "description": "Descent to zero then sawtooth recovery. The DPI choke signal.",
+        "type": "timeseries",
+        "gridPos": { "h": 10, "w": 24, "x": 0, "y": 16 },
+        "datasource": { "type": "grafana-postgresql-datasource" },
+        "targets": [{
+          "rawSql": "SELECT to_timestamp(timestamp_epoch) AS time, win_value FROM packet_telemetry WHERE session_key LIKE '%7777' AND direction = 'inbound' ORDER BY timestamp_epoch",
+          "format": "time_series",
+          "refId": "A"
+        }],
+        "fieldConfig": {
+          "defaults": {
+            "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "pointSize": 2, "showPoints": "always" },
+            "unit": "short",
+            "displayName": "Server Window (win_value)"
+          }
+        },
+        "options": { "tooltip": { "mode": "single" } }
+      },
+      {
+        "id": 6,
+        "title": "Bytes Per Session",
+        "type": "barchart",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 26 },
+        "datasource": { "type": "grafana-postgresql-datasource" },
+        "targets": [{
+          "rawSql": "SELECT session_key, total_bytes::float as total_bytes FROM session_summary ORDER BY total_bytes DESC",
+          "format": "table",
+          "refId": "A"
+        }],
+        "options": { "orientation": "horizontal", "showValue": "auto" },
+        "fieldConfig": { "defaults": { "unit": "bytes" } }
+      },
+      {
+        "id": 7,
+        "title": "Packets Per Session",
+        "type": "barchart",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 26 },
+        "datasource": { "type": "grafana-postgresql-datasource" },
+        "targets": [{
+          "rawSql": "SELECT session_key, packet_count::float as packet_count FROM session_summary ORDER BY packet_count DESC",
+          "format": "table",
+          "refId": "A"
+        }],
+        "options": { "orientation": "horizontal", "showValue": "auto" }
+      },
+      {
+        "id": 8,
+        "title": "Top Processes by Connections (CONN events)",
+        "type": "barchart",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 34 },
+        "datasource": { "type": "grafana-postgresql-datasource" },
+        "targets": [{
+          "rawSql": "SELECT process, COUNT(*)::float as connections FROM ambient_telemetry WHERE event = 'CONN' GROUP BY process ORDER BY connections DESC LIMIT 10",
+          "format": "table",
+          "refId": "A"
+        }],
+        "options": { "orientation": "horizontal", "showValue": "auto" }
+      },
+      {
+        "id": 9,
+        "title": "Top Processes by Bytes Transferred",
+        "type": "barchart",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 34 },
+        "datasource": { "type": "grafana-postgresql-datasource" },
+        "targets": [{
+          "rawSql": "SELECT process, SUM(COALESCE(bytes, 0))::float as total_bytes FROM ambient_telemetry WHERE event IN ('SEND', 'RECV') GROUP BY process ORDER BY total_bytes DESC LIMIT 10",
+          "format": "table",
+          "refId": "A"
+        }],
+        "options": { "orientation": "horizontal", "showValue": "auto" },
+        "fieldConfig": { "defaults": { "unit": "bytes" } }
+      },
+      {
+        "id": 10,
+        "title": "Device Process Inventory (Ambient Factors)",
+        "description": "Patent: a list of then-running processes on a device",
+        "type": "table",
+        "gridPos": { "h": 10, "w": 24, "x": 0, "y": 42 },
+        "datasource": { "type": "grafana-postgresql-datasource" },
+        "targets": [{
+          "rawSql": "SELECT process, event, COUNT(*) as event_count, SUM(COALESCE(bytes, 0)) as total_bytes FROM ambient_telemetry GROUP BY process, event ORDER BY event_count DESC",
+          "format": "table",
+          "refId": "A"
+        }]
+      }
+    ],
+    "schemaVersion": 39
+  },
+  "overwrite": true
+}

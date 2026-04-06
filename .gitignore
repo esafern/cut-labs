@@ -1,0 +1,67 @@
+# Credentials
+*.properties
+!*.properties.template
+
+# Packet captures
+*.pcap
+*.pcapng
+
+# Telemetry output
+*.tsv
+*.ndjson
+
+# macOS
+.DS_Store
+
+# Java build artifacts
+*.class
+*.jar
+*.p12
+*.jks
+truststore.*
+*.csr
+*.srl
+
+# TLS keys and certs
+*.key
+*.crt
+client_certs/
+
+# WireGuard
+*_private.key
+*_public.key
+*.conf
+
+# Editor
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+
+# Temp
+/tmp/
+lab1_old/
+lab1_old_2/
+lab2/load_schema.sh
+lab2/packet-telemetry-*.json
+lab2/register_schema.sh
+lab2/view-subjects.sh
+lab2/x
+
+# Backup
+cut-labs-repo.tar.gz
+
+# Secrets
+lab1/load_schema.sh
+lab5/dtrace.out
+lab5/dtrace_enhanced.out
+lab5/ambient_snapshot_*.json
+lab6/*.out
+lab6/*.tsv
+lab6/*.pcap
+._*
