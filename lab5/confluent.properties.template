@@ -1,4 +1,4 @@
-bootstrap.servers=pkc-921jm.us-east-2.aws.confluent.cloud:9092
+bootstrap.servers=<bootstrap-server>:9092
 security.protocol=SASL_SSL
 sasl.mechanisms=PLAIN
 sasl.username=REPLACE_API_KEY

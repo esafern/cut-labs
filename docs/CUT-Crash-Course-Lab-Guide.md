@@ -129,9 +129,9 @@ Normalized key (both directions same), `direction` field in JSON.
 
 ### 1.4 — Produce to Confluent Cloud
 
-File mode: `cat telemetry.tsv | confluent kafka topic produce packet-telemetry --cluster lkc-187v7z --parse-key --delimiter '|'`
+File mode: `cat telemetry.tsv | confluent kafka topic produce packet-telemetry --cluster <cluster-id> --parse-key --delimiter '|'`
 
-Verify: `confluent kafka topic consume packet-telemetry --from-beginning --cluster lkc-187v7z | head -3`
+Verify: `confluent kafka topic consume packet-telemetry --from-beginning --cluster <cluster-id> | head -3`
 
 ### 1.5 — Schema Registry
 
