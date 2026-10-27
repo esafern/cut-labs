@@ -61,7 +61,7 @@ done
 ## Ambient Telemetry Pipeline
 
 **Topic:** `ambient-telemetry` (6 partitions, 24h retention)
-**Service account:** ambient-service (API key `637FZ55MZ652N64Z`)
+**Service account:** ambient-service (its own API key, least-privilege)
 **Properties file:** `lab5/confluent.properties`
 
 ### Capture (10 seconds, auto-stops)

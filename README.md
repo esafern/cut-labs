@@ -1,18 +1,46 @@
-# CUT Labs — Continuous Universal Trust Architecture
+# CUT Labs: zero-trust network telemetry, built from a patent
 
-Hands-on exploration of the CUT patent telemetry pipeline
+Six hands-on labs that rebuild, in miniature, the telemetry pipeline described in
+US patent 12,309,132 B1, "Continuous Universal Trust Architecture and Method":
+packet and kernel metadata captured on a device, streamed through Kafka with
+registered schemas, and analyzed for trust signals without inspecting payload.
 
-Built on Intel macOS Sequoia 15.7.4 (BSD networking stack).
+## Author and purpose
 
-## What This Is
+I wrote these labs myself in March 2026 as a learning exercise: to understand the
+patent's architecture by building each component and capturing real traffic through
+it, rather than by reading alone. Each lab folder has a `NARRATIVE.md` with what I
+built, what broke, and what the captures showed.
 
-A working lab environment for understanding the CUT patent's relay architecture
+The patent's inventor is Nir Gaist; it is assigned to Noetic Global Corp. This is an
+independent study based on the published patent. It is not affiliated with or
+endorsed by Noetic, and it contains no Noetic code.
+
+Built and run on Intel macOS Sequoia 15.7.4 (BSD networking stack), with Confluent
+Cloud for Kafka, Schema Registry and Flink SQL.
+
+## What the labs showed
+
+- **The relay can be stateless.** Of 36 TCP/IP fields, 27 are WIRE fields readable
+  from fixed header offsets at line rate; 9 COMPUTED fields (RTT, retransmits,
+  bytes in flight) need per-connection state and belong in the engine, downstream.
+- **A proxy breaks sequence-number continuity.** Through an mTLS middlebox, one
+  request produced four independent ISNs, and the proxy added 1.4 ms between the
+  client's SYN and its own SYN to the server: a gap visible in telemetry alone.
+- **A stalled intermediary is visible without payload.** A receiver that stops
+  reading drives the TCP window to zero in under 200 ms, then recovers in a
+  sawtooth; one comparison on a header field detects it.
+- **Identity can survive NAT.** With WireGuard, rewriting the port mid-session
+  changes the 4-tuple, but the tunnel re-establishes on the same public key.
+- **Kernel telemetry needs no SIP changes on macOS.** DTrace's syscall provider
+  records which process connected, sent and received, by PID; only function
+  boundary tracing is blocked.
+
+## What this is
+
+The labs follow the patent's pipeline:
 
 packet metadata extraction → structured JSON → Kafka → trust engine.
-
-The project explores how a Zero-Trust network architecture can extract,
-stream, and analyze TCP/IP metadata to build continuous trust scoring
-without inspecting payload content.
 
 Each lab implements a specific patent component:
 
@@ -33,6 +61,10 @@ Each lab implements a specific patent component:
 brew install mitmproxy wireshark wireguard-tools wireguard-go iperf3 nmap
 pip3 install confluent-kafka --break-system-packages
 ```
+
+Also used: a Confluent Cloud cluster with Schema Registry and Flink SQL; Java 17
+(labs 2 and 3); Docker (lab 4); PostgreSQL and Grafana for the dashboard
+(`load_grafana.py`, `cut-dashboard.json`).
 
 ### Confluent Cloud Setup
 
@@ -112,7 +144,7 @@ mid-session — tunnel re-establishes on the same pkey.
 **Pipe delimiter:** `|` everywhere. Tab caused BSD sed failures and confluent CLI
 parsing issues. Colon breaks keys containing IP:port.
 
-**Python System Registry producer:** `produce_sr.py` uses confluent-kafka (librdkafka)
+**Python Schema Registry producer:** `produce_sr.py` uses confluent-kafka (librdkafka)
 with batching, compression, and SSL retry with Schema Registry serialization for both key and value.
 
 **Docker for WireGuard daemon:** Both WireGuard peers on the same Mac fails — the
@@ -176,7 +208,18 @@ Flink SQL auto-discovers column types from registered schemas.
 | `ambient-telemetry-key` | `{pid}-{process}` (string) | `lab5/schemas/` |
 | `ambient-telemetry-value` | Syscall event with process identity | `lab5/schemas/` |
 
-## Patent Reference
+## Scope and limits
 
-US 12,309,132 B1 — "Continuous Universal Trust Architecture and Method"
+This is a learning environment, not a product. Capture uses tcpdump and tshark with
+Python transforms; the production path the notes describe is a C parser at fixed
+byte offsets feeding librdkafka, with the same schemas. Cross-layer correlation in
+lab 6 is done by hand; the Flink SQL in `docs/flink_queries.sql` shows the detection
+queries (session summary, zero-window stalls, process inventory), not an automated
+trust score.
+
+## Patent reference
+
+US 12,309,132 B1, "Continuous universal trust architecture and method".
+Inventor: Nir Gaist. Assignee: Noetic Global Corp (originally Cortwo Corp).
 Filed 2024-07-12. Granted 2025-05-20.
+https://patents.google.com/patent/US12309132B1/en
